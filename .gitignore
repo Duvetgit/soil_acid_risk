@@ -1,0 +1,29 @@
+# 数据文件夹（所有原始数据和爬取结果都放这里）
+data/
+
+# 栅格数据（大文件）
+*.tif
+
+# 逗号分隔值文件（如果某些小配置文件需要保留，后面可用 git add -f 强制添加）
+*.csv
+
+# Python 虚拟环境
+venv/
+env/
+.venv/
+
+# Jupyter Notebook 检查点
+.ipynb_checkpoints/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 输出图片和表格（关键的图表可以手动 add）
+outputs/*.png
+outputs/*.jpg
+outputs/*.csv
