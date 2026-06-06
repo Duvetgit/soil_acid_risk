@@ -42,6 +42,7 @@ def reclassify_landuse(landuse_array):
         5:"urban",
         6:"unused land"
     }
+    landuse_array[:] = landuse_array//10
     unique_classes = np.unique(landuse_array[~np.isnan(landuse_array)].astype(int))#便于统计
     labels = [f"{cls}:{landuse_names.get(cls,f'类型{cls}')}" for cls in unique_classes]
     return landuse_names,labels,unique_classes
