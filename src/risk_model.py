@@ -1,5 +1,8 @@
 import numpy as np
 import pandas as pd
+import geopandas as gpd
+import rasterio
+from rasterio.features import geometry_mask
 def calc_acid_risk(lu_data,ph_data,crop_ph_df,paddy_crop="水稻",dryland_crop="玉米"):
     #计算掩膜：
     valid = ~np.isnan(lu_data)
@@ -53,3 +56,56 @@ def calc_acid_risk(lu_data,ph_data,crop_ph_df,paddy_crop="水稻",dryland_crop="
 
     return risk_array, stats
     pass
+
+#封装县级统计函数：
+from rasterio.features import rasterize
+
+
+def calc_county_risk(risk_array, transform, shp_path):
+    """
+    统计每个地级市的耕地酸化风险
+    """
+    # 1. 读取市界
+    counties = gpd.read_file(shp_path)
+
+    # 2. 确保投影一致
+    with rasterio.open(r'C:\projects\soil_acid_risk\data\landuse_2023.tif') as ref:
+        if counties.crs != ref.crs:
+            counties = counties.to_crs(ref.crs)
+
+    # 3. 遍历每个市
+    results = []
+    for idx, row in counties.iterrows():
+        geom = row.geometry
+        if geom is None or geom.is_empty:
+            continue
+
+        # 用 rasterize 把当前市的几何形状转成掩膜
+        mask = rasterize(
+            [(geom, 1)],
+            out_shape=risk_array.shape,
+            transform=transform,
+            fill=0,
+            dtype='uint8'
+        ).astype(bool)
+
+        # 提取该市的风险值
+        county_risk = risk_array[mask]
+        valid_risk = county_risk[~np.isnan(county_risk)]
+
+        if len(valid_risk) == 0:
+            continue
+
+        mean_risk = np.nanmean(valid_risk)
+        high_risk_ratio = np.sum(valid_risk > 0.5) / len(valid_risk) * 100
+
+        results.append({
+            "county_name": row.get("市", f"市{idx}"),
+            "mean_risk": round(mean_risk, 4),
+            "high_risk_ratio(%)": round(high_risk_ratio, 2),
+            "cropland_pixels": len(valid_risk),
+            "geometry": geom
+        })
+
+    result_gdf = gpd.GeoDataFrame(results, crs=counties.crs)
+    return result_gdf
