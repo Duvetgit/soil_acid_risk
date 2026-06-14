@@ -55,21 +55,29 @@ def calc_acid_risk(lu_data,ph_data,crop_ph_df,paddy_crop="水稻",dryland_crop="
     }
 
     return risk_array, stats
-    pass
 
 #封装县级统计函数：
 from rasterio.features import rasterize
 
 
-def calc_county_risk(risk_array, transform, shp_path):
+def calc_county_risk(risk_array, transform, shp_path, ref_raster_path=None):
     """
     统计每个地级市的耕地酸化风险
+
+    参数:
+        risk_array: ndarray — 风险数组
+        transform: affine transform — 栅格变换参数
+        shp_path: str — 市界 shapefile 路径
+        ref_raster_path: str — 用于投影对齐的参考栅格（默认为 data/landuse_2023.tif）
     """
+    import os
     # 1. 读取市界
     counties = gpd.read_file(shp_path)
 
     # 2. 确保投影一致
-    with rasterio.open(r'C:\projects\soil_acid_risk\data\landuse_2023.tif') as ref:
+    if ref_raster_path is None:
+        ref_raster_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'landuse_2023.tif')
+    with rasterio.open(ref_raster_path) as ref:
         if counties.crs != ref.crs:
             counties = counties.to_crs(ref.crs)
 
